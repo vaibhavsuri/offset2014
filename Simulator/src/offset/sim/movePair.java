@@ -15,4 +15,8 @@ public class movePair {
         src = xx;
         target = yy;
     }
+
+    public String toString(){
+      return "Src: (" + src.x + ", " + src.y + ") Target: (" + target.x + ", " + target.y + ")";
+    }
 }
