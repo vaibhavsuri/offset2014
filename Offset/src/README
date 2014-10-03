@@ -1,8 +1,0 @@
-To run the script:
-
-java offset.sim.Offset <d> <player1> <player2> <output_file>
-
-d: This is the number from which a unique (p,q) pair will be generated for both players
-player1: name of the strategy used by one player
-player2: name of the strategy used by other player
-output_file: where all the debug print statements will be sent
