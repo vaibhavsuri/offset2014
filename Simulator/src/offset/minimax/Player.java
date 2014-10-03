@@ -206,8 +206,6 @@ public class Player extends offset.sim.Player {
             movepr.target = grid[size*i_pr+j_pr];
             if (validateMove(movepr,myPair)) {
               moveList.add(movepr);
-              if (ISLATER)
-                return moveList;
             }
           }
         }
