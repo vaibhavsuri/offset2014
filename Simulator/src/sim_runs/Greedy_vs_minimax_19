@@ -1,0 +1,23 @@
+Offset: 19
+Strategy: Greedy
+
+Opponent: minimax
+
+Pairs: (9,10) (1,18)
+Scores: 366 558
+
+Pairs: (9,10) (2,17)
+Scores: 248 686
+
+Pairs: (9,10) (3,16)
+Scores: 174 770
+
+Pairs: (1,10) (9,10)
+Scores: 334 508
+
+Pairs: (2,10) (9,10)
+Scores: 346 502
+
+Pairs: (3,10) (9,10)
+Scores: 372 456
+

@@ -1,0 +1,14 @@
+Offset: 9
+Strategy: minimax
+
+Opponent: Greedy
+
+Pairs: (4, 5) (1, 8)
+Scores: 588 370
+
+Pairs: (4, 5) (2, 7)
+Scores: 642 310
+
+Pairs: (4, 5) (3, 6)
+Scores: 518 384
+
