@@ -1,0 +1,23 @@
+Offset: 10
+Strategy: movesdelta
+
+Opponent: dumb
+
+Pairs: (4,6) (1,9)
+Scores: 978 36
+
+Pairs: (4,6) (2,8)
+Scores: 758 210
+
+Pairs: (4,6) (3,7)
+Scores: 936 64
+
+Pairs: (1,9) (4,6)
+Scores: 874 124
+
+Pairs: (2,8) (4,6)
+Scores: 730 240
+
+Pairs: (3,7) (4,6)
+Scores: 756 230
+
