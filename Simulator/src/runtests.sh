@@ -21,7 +21,7 @@ opponent_dir="offset/${opponent}"
 
 #Parameter Sweeps (arbitrarily chosen by Richard)
 psweep="1 2 3" 
-dsweep="9 15 19"
+dsweep="8 10 15 19"
 
 Usage() {
     echo "Usage: runtests.sh [options]"
@@ -32,21 +32,39 @@ Usage() {
     exit 1
 }
 
-ForkAndWait() {
-  for i in ${psweep} ; do
-    if [ ${1} -eq 1 ] ; then
+# Set the p,q pairs for both players based on the offset
+# and the loop in ForkAndWait
+SetPQ() {
+  if [ ${1} -eq 1 ] ; then
+    if [ $((${offset}%2)) -eq 0 ] ; then
+      myp=`expr ${offset} / 2 - 1`
+      myq=`expr ${myp} + 2 `
+    else
       myp=`expr ${offset} / 2`
       myq=`expr ${myp} + 1`
-      herp=${i}
-      herq=`expr ${offset} - ${herp}`
+    fi
+    herp=${2}
+    herq=`expr ${offset} - ${herp}`
+  else
+    if [ $((${offset}%2)) -eq 0 ] ; then
+      herp=`expr ${offset} / 2 - 1`
+      herq=`expr ${herp} + 2 `
     else
       herp=`expr ${offset} / 2`
       herq=`expr ${herp} + 1`
-      myp=${i}
-      myq=`expr ${offset} - ${herp}`
     fi
-    output="result_${i}"
-    ( java "offset.sim.Offset" "${offset}" "${strategy}${i}" "${opponent}${i}" "${output}" "False" "${myp}" "${myq}" "${herp}" "${herq}" &> /dev/null ) &
+    myp=${2}
+    myq=`expr ${offset} - ${myp}`
+  fi
+}
+
+ForkAndWait() {
+  for i in ${psweep} ; do
+    SetPQ ${1} ${i}
+    if [ ! ${myp} -eq ${herp} ] ; then
+      output="result_${i}"
+      ( java "offset.sim.Offset" "${offset}" "${strategy}${i}" "${opponent}${i}" "${output}" "False" "${myp}" "${myq}" "${herp}" "${herq}" &> /dev/null ) &
+    fi
   done 
   FAIL=0
   for job in `jobs -p` ; do
@@ -79,19 +97,21 @@ RunSim() {
     done
   done 
 
-  for i in `seq 1 1 2` ; do
-    ForkAndWait ${i}
+  for k in `seq 1 1 2` ; do
+    ForkAndWait ${k}
 
     #Collect results
 
-    echo "Finished run ${i} with offset = ${offset}"
+    echo "Finished ${k} batch with offset = ${offset}"
     for j in ${psweep} ; do
-      output="result_${j}"
-      pairs=`tail ${output} | grep 'Pair' | sed -r "s/^(.*)${pairRegEx}(.*)${pairRegEx}/\2 \4/" | xargs echo`
-      scores=`tail ${output} | grep 'GAME' | sed -r 's/^.*\s([0-9]+)\s.*\s([0-9]+)/\1 \2/' | xargs echo`
-      echo "Pairs: ${pairs}" >> ${sim_output}
-      echo -e "Scores: ${scores}\n" >> ${sim_output}
-      rm ${output}
+      if [ -f "result_${j}" ] ; then
+        output="result_${j}"
+        pairs=`tail ${output} | grep 'Pair' | sed -r "s/^(.*)${pairRegEx}(.*)${pairRegEx}/\2 \4/" | xargs echo`
+        scores=`tail ${output} | grep 'GAME' | sed -r 's/^.*\s([0-9]+)\s.*\s([0-9]+)/\1 \2/' | xargs echo`
+        echo "Pairs: ${pairs}" >> ${sim_output}
+        echo -e "Scores: ${scores}\n" >> ${sim_output}
+        rm ${output}
+     fi
     done 
   done
   for i in ${psweep} ; do
@@ -148,6 +168,7 @@ done
 #gnuplot_file="${stat_output}.p"
 #stat_output="${stat_output}.txt"
 
+
 if [ ${nosim} -eq 0 ] ; then
 
   # Make clean files where we'll store test results
@@ -165,6 +186,7 @@ if [ ${nosim} -eq 0 ] ; then
   # Main test loop
   if [ ${offset} -eq 0 ] ; then
     for d in ${dsweep} ; do
+      echo "Running tests for d=${d}"
       offset=${d}
       sim_output="sim_runs/${strategy}_vs_${opponent}_${offset}"
       > ${sim_output}
@@ -180,12 +202,12 @@ fi
 
 # Collect statistics
 
-pairs=`GetPairs "${sim_output}"`
-
-for each in ${pairs} ; do 
-  echo ${each}
-done
-exit
+#pairs=`GetPairs "${sim_output}"`
+#
+#for each in ${pairs} ; do 
+#  echo ${each}
+#done
+#exit
 
 #echo "#Strategy: ${strategy}" > ${stat_output}
 #echo "#Constant: ${constant} ${consval}" >> ${stat_output}
