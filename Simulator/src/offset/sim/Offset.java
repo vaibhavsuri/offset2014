@@ -52,7 +52,6 @@ public class Offset
     static Pair p1;
     static int usedP = 0;
     //static FileOutputStream out;
-    static PrintWriter writer;
     static ArrayList<ArrayList> history = new ArrayList<ArrayList>();
     static boolean nomoveend = false;
     static int nomoveid = 100;
@@ -287,7 +286,6 @@ public class Offset
                 scr1 = calculatescore(1);
                 label0.setText("score for "+group0+"  is "+scr0+" score for " +group1 +" is "+scr1);
                 label0.setVisible(true);
-                System.err.println("[SUCCESS] The player achieves the goal in " + tick + " ticks.");
                 next.setEnabled(false);
                 this.showdetail();
                 return false;
@@ -555,8 +553,6 @@ public class Offset
         //System.out.println(next.move);
         if (next.move) {
         if (validateMove(next, currentPr)) {
-        	writer.printf("(%d, %b, (%d, %d), (%d, %d), %d)\n", currentplayer, next.move, next.src.x, next.src.y, next.target.x, next.target.y, next.src.value*2);
-        	writer.flush();
         	ArrayList record = new ArrayList();
         	record.add(currentplayer);
         	record.add(next);
@@ -569,14 +565,16 @@ public class Offset
         }
         }
         else {
-        	if (nomove(currentPr)) {
+        	if (nomove(currentPr) == null) {
         		System.out.printf("%d player no move\n", currentplayer);
         		counter = counter+1;
         	}
         	else {
         		nomoveend = true;
         		nomoveid = currentplayer;
-        		System.err.printf("Player %d still have valid movie, but it gives up", currentplayer);
+                        movePair mp = nomove(currentPr);
+                        String moveString = mp.src.x + "," + mp.src.y + " " + mp.target.x + "," + mp.target.y;
+        		System.err.printf("Player %d still have valid move at " + moveString + ", but it gives up", currentplayer);
         	}
         }
         
@@ -594,7 +592,9 @@ public class Offset
         }
         else {
             // Achieve the goal
-            System.err.println("[SUCCESS] The player achieves the goal in " + tick + " ticks.");
+            int scr0, scr1;
+            scr0 = calculatescore(0);
+            scr1 = calculatescore(1);
         }
     }
 
@@ -612,22 +612,22 @@ public class Offset
 	   System.out.printf("target is (%d, %d) = %d \n", movepr.target.x, movepr.target.y, movepr.target.value);
 	   
    }
-   boolean nomove(Pair pr) {
-	   for (int i = 0; i < size; i++) {
-			for (int j = 0; j < size; j++) {
-				for (int i_pr=0; i_pr<size; i_pr++) {
-				for (int j_pr=0; j_pr <size; j_pr++) {
-					movePair movepr = new movePair(false, grid[i*size+j], grid[size*i_pr+j_pr]);
-					//movepr.x = grid[i*size+j];
-				//	movepr.y = grid[size*i_pr+j_pr];
-					if (validateMove(movepr, pr)) {
-						return false;
-					}
-				}
-				}
-			}
-	   }
-	   return true;
+   movePair nomove(Pair pr) {
+     for (int i = 0; i < size; i++) {
+       for (int j = 0; j < size; j++) {
+         for (int i_pr=0; i_pr<size; i_pr++) {
+           for (int j_pr=0; j_pr <size; j_pr++) {
+             movePair movepr = new movePair(false, grid[i*size+j], grid[size*i_pr+j_pr]);
+             //movepr.x = grid[i*size+j];
+             //	movepr.y = grid[size*i_pr+j_pr];
+             if (validateMove(movepr, pr)) {
+               return movepr;
+             }
+           }
+         }
+       }
+     }
+     return null;
    }
     
 	public static void main(String[] args) throws Exception
@@ -636,6 +636,7 @@ public class Offset
         
         String output = null;
         int d = 0;
+        boolean gui = true;
         if (args.length > 0)
              d = Integer.parseInt(args[0]);
         if (args.length > 1)
@@ -644,32 +645,38 @@ public class Offset
             group1 = args[2];
         if (args.length >3)
         	output = args[3];
+        if (args.length > 4)
+            gui = Boolean.parseBoolean(args[4]);
+        //For testing
+        if (args.length > 8){
+          p0 = new Pair(Integer.parseInt(args[5]),Integer.parseInt(args[6]));
+          p1 = new Pair(Integer.parseInt(args[7]),Integer.parseInt(args[8]));
+        }
+        else{
+          p0=randomPair(d);
+          p1=randomPair(d);
+          while (p0.p==p1.p || p0.q == p1.p) {
+                  p1=randomPair(d);
+          }
+        }
+
+
         
         // create game
        
-		writer = new PrintWriter(output, "UTF-8");
         Offset game = new Offset();
         game.init();
-        p0=randomPair(d);
-        //p0=new Pair(3,4);
-        p1=randomPair(d);
-        //p1=new Pair(1,6);
-        while (p0.p==p1.p || p0.q == p1.p) {
-        	p1=randomPair(d);
-        }
-        System.out.printf("Pair 1 is (%d, %d)", p0.p, p0.q);
-        System.out.printf("Pair 2 is (%d, %d)", p1.p, p1.q);
         player0 = loadPlayer(group0, p0, 0);
         player1 = loadPlayer(group1, p1, 1);
         // init game
         
         // play game
-        //if (gui) {
+        if (gui) {
             game.playgui();
-       // }
-       // else {
-         //   game.play();
-       // }
+        }
+        else {
+           game.play();
+        }
        
     }        
 
