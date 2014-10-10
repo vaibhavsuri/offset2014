@@ -1,9 +1,0 @@
-Offset: 9
-Strategy: minimax
-
-Pairs: (1, 8) (3, 6)
-Scores: 440 478
-
-Pairs: (1, 8) (2, 7)
-Scores: 456 462
-
