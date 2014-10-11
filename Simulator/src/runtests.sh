@@ -35,26 +35,25 @@ Usage() {
 # Set the p,q pairs for both players based on the offset
 # and the loop in ForkAndWait
 SetPQ() {
-  if [ ${1} -eq 1 ] ; then
-    if [ $((${offset}%2)) -eq 0 ] ; then
-      myp=`expr ${offset} / 2 - 1`
-      myq=`expr ${myp} + 2 `
-    else
-      myp=`expr ${offset} / 2`
-      myq=`expr ${myp} + 1`
-    fi
-    herp=${2}
-    herq=`expr ${offset} - ${herp}`
+  if [ $((${offset}%2)) -eq 0 ] ; then
+    firstp=`expr ${offset} / 2 - 1`
+    firstq=`expr ${myp} + 2 `
   else
-    if [ $((${offset}%2)) -eq 0 ] ; then
-      herp=`expr ${offset} / 2 - 1`
-      herq=`expr ${herp} + 2 `
-    else
-      herp=`expr ${offset} / 2`
-      herq=`expr ${herp} + 1`
-    fi
-    myp=${2}
-    myq=`expr ${offset} - ${myp}`
+    firstp=`expr ${offset} / 2`
+    firstq=`expr ${myp} + 1`
+  fi
+  secp=${2}
+  secq=`expr ${offset} - ${herp}`
+  if [ ${1} -eq 1 ] ; then
+    myp=${firstp}
+    myq=${firstq}
+    herp=${secp}
+    herq=${secq}
+  else
+    herp=${firstp}
+    herq=${firstq}
+    myp=${secp}
+    myq=${secq}
   fi
 }
 
@@ -76,25 +75,24 @@ ForkAndWait() {
   fi
 }
 
+FixPlayerFile() {
+  cp -r "${1}" "${2}"
+  newpackage="package offset.${2};"
+  for file in `ls "${2}"` ; do 
+    if [ -f "${2}/${file}" ] ; then
+      sed -i "1 s/^.*$/${newpackage}/" "${2}/${file}"
+    fi
+  done
+
+}
+
 RunSim() {
   echo "Offset: $offset" >> ${sim_output}
   echo -e "Strategy: $strategy\n" >> ${sim_output}
   echo -e "Opponent: $opponent\n" >> ${sim_output}
   for i in ${psweep} ; do
-    cp -r "${strategy_dir}" "${strategy_dir}${i}"
-    newpackage="package offset.${strategy}${i};"
-    for file in `ls "${strategy_dir}${i}"` ; do 
-      if [ -f "${strategy_dir}${i}/${file}" ] ; then
-        sed -i "1 s/^.*$/${newpackage}/" "${strategy_dir}${i}/${file}"
-      fi
-    done
-    cp -r "${opponent_dir}" "${opponent_dir}${i}"
-    newpackage="package offset.${opponent}${i};"
-    for file in `ls "${opponent_dir}${i}"` ; do 
-      if [ -f "${opponent_dir}${i}/${file}" ] ; then
-        sed -i "1 s/^.*$/${newpackage}/" "${opponent_dir}${i}/${file}"
-      fi
-    done
+    FixPlayerFile "${strategy_dir}" "${strategy_dir}${i}"
+    FixPlayerFile "${opponent_dir}" "${opponent_dir}${i}"
   done 
 
   for k in `seq 1 1 2` ; do
@@ -278,38 +276,3 @@ else
 fi
 
 exit
-
-
-
-#totaltitle=""
-#for title in ${series} ; do
-#  thistitle=`echo -e "\"${nseries} ${title}\" "`
-#  totaltitle="${totaltitle}${thistitle}"
-#done
-#echo "${totaltitle}" >> ${stat_output}
-#
-#i=0
-#j=0
-#for value in ${x} ; do
-#  stat_array[${i}]=${value}
-#  i=`expr ${i} + 1`
-#done
-#for title in ${series} ; do
-#  i=0
-#  j=`expr ${j} + 1`
-#  for value in ${x} ; do
-#    avg_ticks=`nextnum ${ticks}`
-#    ticks=`echo ${ticks#${avg_ticks}}`
-#    stat_array[${i}]="${stat_array[${i}]} ${avg_ticks}"
-#    i=`expr ${i} + 1`
-#  done
-#done
-#for k in `seq 0 1 ${i}` ; do
-#  echo ${stat_array[${k}]} >> ${stat_output}
-#done
-#
-## Generate Gnuplot script for this data
-#
-##Index into gnuplot input file correctly
-#j=`expr ${j} + 1`
-#
