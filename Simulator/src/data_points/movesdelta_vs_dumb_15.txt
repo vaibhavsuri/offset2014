@@ -1,0 +1,10 @@
+#Strategy: movesdelta
+#Opponent: dumb
+#Player 1 Score   Player 2 Score
+
+830 162
+786 168
+782 182
+924 72
+900 70
+820 124

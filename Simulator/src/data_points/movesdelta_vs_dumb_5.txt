@@ -1,0 +1,6 @@
+#Strategy: movesdelta
+#Opponent: dumb
+#Player 1 Score   Player 2 Score
+
+778 198
+766 240

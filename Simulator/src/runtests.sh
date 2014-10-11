@@ -61,7 +61,7 @@ SetPQ() {
 ForkAndWait() {
   for i in ${psweep} ; do
     SetPQ ${1} ${i}
-    if [ ! ${myp} -eq ${herp} ] ; then
+    if [ ! ${myp} -eq ${herp} -a ! ${myp} -eq ${herq} ] ; then
       output="result_${i}"
       ( java "offset.sim.Offset" "${offset}" "${strategy}${i}" "${opponent}${i}" "${output}" "False" "${myp}" "${myq}" "${herp}" "${herq}" &> /dev/null ) &
     fi
@@ -121,7 +121,7 @@ RunSim() {
 }
 
 GetStat(){
-  value=`cat ${sim_output} | grep -o "${2}:.*" | grep -o "[0-9]\{1,\}"`
+  value=`cat ${1} | grep -o "${2}:.*" | grep -o "[0-9]\{1,\}"`
   echo ${value}
 }
 
@@ -161,19 +161,14 @@ while getopts go:d:s:h c; do
     esac
 done
 
-#stat_output="data_points/${strategy}_${offset}"
 
-#Set the parameters we'll sweep over
 
-#gnuplot_file="${stat_output}.p"
-#stat_output="${stat_output}.txt"
 
 
 if [ ${nosim} -eq 0 ] ; then
 
   # Make clean files where we'll store test results
 
-#  > ${stat_output}
   for i in `seq 1 1 10` ; do
     if [ -d ${strategy_dir}${i} ] ; then
       rm -r ${strategy_dir}${i}
@@ -188,7 +183,7 @@ if [ ${nosim} -eq 0 ] ; then
     for d in ${dsweep} ; do
       echo "Running tests for d=${d}"
       offset=${d}
-      sim_output="sim_runs/${strategy}_vs_${opponent}_${offset}"
+      sim_output="sim_runs/${strategy}_vs_${opponent}_${d}"
       > ${sim_output}
       RunSim 
     done
@@ -199,24 +194,93 @@ if [ ${nosim} -eq 0 ] ; then
   fi
 fi
 
+nextnum(){
+  expr match "${1}" '\([0-9]\+\)'
+}
 
 # Collect statistics
+if [ ${offset} -eq 0 ] ; then
+  output="data_points/${strategy}_vs_${opponent}"
+  gnuplot_file="${output}.p"
+  for d in ${dsweep} ; do
+    sim_output="sim_runs/${strategy}_vs_${opponent}_${d}"
+    stat_output="${output}_${d}.txt"
+    > ${stat_output}
+    echo "#Strategy: ${strategy}" > ${stat_output}
+    echo "#Opponent: ${opponent}" >> ${stat_output}
+    echo -e "#Player 1 Score   Player 2 Score\n" >> ${stat_output}
 
-#pairs=`GetPairs "${sim_output}"`
-#
-#for each in ${pairs} ; do 
-#  echo ${each}
-#done
-#exit
+    pairs=`GetStat "${sim_output}" "Scores"`
+    numpairs=( $pairs )
+    numpairs=`expr ${#numpairs[@]} / 2 + 1` #Count number of score pairs
+    for i in `seq 2 1 ${numpairs}` ; do 
+      first=`nextnum ${pairs}`
+      pairs=`echo ${pairs#${first}}`
+      sec=`nextnum ${pairs}`
+      pairs=`echo ${pairs#${sec}}`
+      echo ${first} ${sec} >> ${stat_output}
+    done
 
-#echo "#Strategy: ${strategy}" > ${stat_output}
-#echo "#Constant: ${constant} ${consval}" >> ${stat_output}
-#echo -e "#${Xaxis}   Average Ticks\n" >> ${stat_output}
-#
-#nextnum(){
-#  expr match "${1}" '\([0-9]\+\)'
-#}
-#
+  done
+
+  #Set up GNUPLOT file
+  echo "set term wxt size 700, 450" > ${gnuplot_file}
+  echo "unset label          #remove any previous labels" >> ${gnuplot_file}
+  echo "set xrange [0:1000]" >> ${gnuplot_file}
+  echo "set yrange [0:1000]" >> ${gnuplot_file}
+  echo "set xtic nomirror auto       #set xtics automatically" >> ${gnuplot_file}
+  echo "set ytic nomirror auto       #set ytics automatically" >> ${gnuplot_file}
+  echo "betas = \" 8 10 15 19 \"" >> ${gnuplot_file}
+  echo "lookup_beta(i) = word(betas,i)" >> ${gnuplot_file}
+  echo "set multiplot" >> ${gnuplot_file}
+  echo "set size 0.4,1" >> ${gnuplot_file}
+  echo "set origin 0,0" >> ${gnuplot_file}
+  echo "set title \"The Dependence of Player 1's Score on Player 2's Score\"" >> ${gnuplot_file}
+  echo "set xlabel \"Player 2 Score\"" >> ${gnuplot_file}
+  echo "set ylabel \"Player 1 Score\"" >> ${gnuplot_file}
+  echo "set nox2tics" >> ${gnuplot_file}
+  echo "set border 3" >> ${gnuplot_file}
+  echo "point=1.5" >> ${gnuplot_file}
+  echo "plot  for [i=1:4] '${strategy}_vs_${opponent}_'.lookup_beta(i).'.txt' using 1:2 title \"offset= \".lookup_beta(i) with points " >> ${gnuplot_file}
+
+else
+  sim_output="sim_runs/${strategy}_vs_${opponent}_${offset}"
+  stat_output="data_points/${strategy}_vs_${opponent}_${offset}"
+  gnuplot_file="${stat_output}.p"
+  stat_output="${stat_output}.txt"
+  > ${stat_output}
+
+  echo "#Strategy: ${strategy}" > ${stat_output}
+  echo "#Opponent: ${opponent}" >> ${stat_output}
+  echo -e "#Player 1 Score   Player 2 Score\n" >> ${stat_output}
+
+  pairs=`GetStat "${sim_output}" "Scores"`
+  numpairs=( $pairs )
+  numpairs=`expr ${#numpairs[@]} / 2 + 1` #Count number of score pairs
+  for i in `seq 2 1 ${numpairs}` ; do 
+    first=`nextnum ${pairs}`
+    pairs=`echo ${pairs#${first}}`
+    sec=`nextnum ${pairs}`
+    pairs=`echo ${pairs#${sec}}`
+    echo ${first} ${sec} >> ${stat_output}
+  done
+  echo "set term wxt size 700, 450" > ${gnuplot_file}
+  echo "unset label          #remove any previous labels" >> ${gnuplot_file}
+  echo "set xrange [0:1000]" >> ${gnuplot_file}
+  echo "set yrange [0:1000]" >> ${gnuplot_file}
+  echo "set xtic nomirror auto       #set xtics automatically" >> ${gnuplot_file}
+  echo "set ytic nomirror auto       #set ytics automatically" >> ${gnuplot_file}
+  echo "set title \"The Dependence of Player 1's Score on Player 2's Score\"" >> ${gnuplot_file}
+  echo "set xlabel \"Player 2 Score\"" >> ${gnuplot_file}
+  echo "set ylabel \"Player 1 Score\"" >> ${gnuplot_file}
+  echo "point=1.5" >> ${gnuplot_file}
+  echo "plot '${strategy}_vs_${opponent}_${offset}.txt' u 1:2 w points title 'Results'  " >> ${gnuplot_file}
+fi
+
+exit
+
+
+
 #totaltitle=""
 #for title in ${series} ; do
 #  thistitle=`echo -e "\"${nseries} ${title}\" "`
@@ -249,17 +313,3 @@ fi
 ##Index into gnuplot input file correctly
 #j=`expr ${j} + 1`
 #
-#echo "set term wxt size 700, 450" > ${gnuplot_file}
-#echo "unset label          #remove any previous labels" >> ${gnuplot_file}
-#echo "set xtic auto       #set xtics automatically" >> ${gnuplot_file}
-#echo "set ytic auto       #set ytics automatically" >> ${gnuplot_file}
-#echo "set title \"The Dependence of Average Ticks on ${Xaxis} (holding ${constant} at a constant value of ${consval})\"" >> ${gnuplot_file}
-#echo "set xlabel \"${Xaxis}\"" >> ${gnuplot_file}
-#echo "set ylabel \"Average Ticks (over 10 runs)\"" >> ${gnuplot_file}
-#echo "point=1.5" >> ${gnuplot_file}
-#echo 'set style line 1 pt 4 lc rgb "#8C1717" ps point' >> ${gnuplot_file}
-#echo 'set style line 2 pt 7 lc rgb "red"  ps point' >> ${gnuplot_file}
-#echo 'set style line 3 pt 9 lc rgb "#EEB4B4" ps point' >> ${gnuplot_file}
-#echo 'set style line 4 pt 13 lc rgb "blue" ps point' >> ${gnuplot_file}
-#echo 'set style line 5 pt 12 lc rgb "#8C1717" ps point' >> ${gnuplot_file}
-#echo "plot for [i=2:${j}] '${strategy}_${constant}${consval}.txt'  u 1:i w linespoints ls i title columnhead(i-1)  " >> ${gnuplot_file}
