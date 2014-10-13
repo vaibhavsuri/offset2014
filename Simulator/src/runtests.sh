@@ -37,13 +37,13 @@ Usage() {
 SetPQ() {
   if [ $((${offset}%2)) -eq 0 ] ; then
     firstp=`expr ${offset} / 2 - 1`
-    firstq=`expr ${myp} + 2 `
+    firstq=`expr ${firstp} + 2 `
   else
     firstp=`expr ${offset} / 2`
-    firstq=`expr ${myp} + 1`
+    firstq=`expr ${firstp} + 1`
   fi
   secp=${2}
-  secq=`expr ${offset} - ${herp}`
+  secq=`expr ${offset} - ${secp}`
   if [ ${1} -eq 1 ] ; then
     myp=${firstp}
     myq=${firstq}
@@ -76,11 +76,11 @@ ForkAndWait() {
 }
 
 FixPlayerFile() {
-  cp -r "${1}" "${2}"
-  newpackage="package offset.${2};"
-  for file in `ls "${2}"` ; do 
-    if [ -f "${2}/${file}" ] ; then
-      sed -i "1 s/^.*$/${newpackage}/" "${2}/${file}"
+  cp -r "${1}" "${1}${3}"
+  newpackage="package offset.${2}${3};"
+  for file in `ls "${1}${3}"` ; do 
+    if [ -f "${1}${3}/${file}" ] ; then
+      sed -i "1 s/^.*$/${newpackage}/" "${1}${3}/${file}"
     fi
   done
 
@@ -91,8 +91,8 @@ RunSim() {
   echo -e "Strategy: $strategy\n" >> ${sim_output}
   echo -e "Opponent: $opponent\n" >> ${sim_output}
   for i in ${psweep} ; do
-    FixPlayerFile "${strategy_dir}" "${strategy_dir}${i}"
-    FixPlayerFile "${opponent_dir}" "${opponent_dir}${i}"
+    FixPlayerFile "${strategy_dir}" "${strategy}" "${i}"
+    FixPlayerFile "${opponent_dir}" "${opponent}" "${i}"
   done 
 
   for k in `seq 1 1 2` ; do
@@ -185,6 +185,7 @@ if [ ${nosim} -eq 0 ] ; then
       > ${sim_output}
       RunSim 
     done
+    offset=0
   else
     sim_output="sim_runs/${strategy}_vs_${opponent}_${offset}"
     > ${sim_output}
@@ -230,16 +231,14 @@ if [ ${offset} -eq 0 ] ; then
   echo "set ytic nomirror auto       #set ytics automatically" >> ${gnuplot_file}
   echo "betas = \" 8 10 15 19 \"" >> ${gnuplot_file}
   echo "lookup_beta(i) = word(betas,i)" >> ${gnuplot_file}
-  echo "set multiplot" >> ${gnuplot_file}
-  echo "set size 0.4,1" >> ${gnuplot_file}
-  echo "set origin 0,0" >> ${gnuplot_file}
   echo "set title \"The Dependence of Player 1's Score on Player 2's Score\"" >> ${gnuplot_file}
-  echo "set xlabel \"Player 2 Score\"" >> ${gnuplot_file}
-  echo "set ylabel \"Player 1 Score\"" >> ${gnuplot_file}
+  echo "set xlabel \"Player 2 (${opponent}) Score\"" >> ${gnuplot_file}
+  echo "set ylabel \"Player 1 (${strategy}) Score\"" >> ${gnuplot_file}
   echo "set nox2tics" >> ${gnuplot_file}
   echo "set border 3" >> ${gnuplot_file}
   echo "point=1.5" >> ${gnuplot_file}
-  echo "plot  for [i=1:4] '${strategy}_vs_${opponent}_'.lookup_beta(i).'.txt' using 1:2 title \"offset= \".lookup_beta(i) with points " >> ${gnuplot_file}
+  echo "plot  for [i=1:4] '${strategy}_vs_${opponent}_'.lookup_beta(i).'.txt' using 1:2 title \"offset= \".lookup_beta(i) with points ,\\" >> ${gnuplot_file}
+  echo "x w lines lc 'black'" >> ${gnuplot_file}
 
 else
   sim_output="sim_runs/${strategy}_vs_${opponent}_${offset}"
