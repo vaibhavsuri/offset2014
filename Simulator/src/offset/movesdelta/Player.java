@@ -11,23 +11,13 @@ public class Player extends offset.sim.Player {
   private final int self = id;
   private final int SIZE = 32;//size of game board
 
-  private final int STEAL_BOTH = 2;
-  private final int STEAL_ONE  = 1;
-  private final int STEAL_NONE = 0;
-
   private final int SEARCH_DEPTH = 4;
 
   private Point[][] board = new Point[SIZE][SIZE];
   private Pair selfPair = pr;
   private Pair opponentPair;
-  private final int TIME_OUT = 1;//Vary this number to set time limit for subtree searching
-
-  private double timelimit, timestart;
 
   private int minimaxID = id;
-
-  List<movePair> my_legal_moves = new ArrayList<>();
-  List<movePair> opponent_legal_moves = new ArrayList<>();
 
   public Player(Pair pair, int id) {
     super(pair, id);
@@ -43,7 +33,6 @@ public class Player extends offset.sim.Player {
     updateBoard(grid);
     opponentPair = pair1; // pair0 is the same with selfPair
 
-    //timelimit = ((TIME_OUT*1000))/(double)(getAllValidMoves(pr,board).length);
     Move move = bestMove(board, SEARCH_DEPTH, pair0, pair1, Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY);
 
     if (validMove(move)){
@@ -93,109 +82,74 @@ public class Player extends offset.sim.Player {
     Point target = move.target;
     if (src.value == 1)
       return 2; //because we have a gain of 2
-    if (src.owner != self && target.owner != self)
+    if (src.owner != id && target.owner != id)
       return 2*src.value; //we gain both the piles
-    else if (src.owner != self || target.owner != self)
+    else if (src.owner != id || target.owner != id)
       return src.value; //we gain one of the piles
     else
       return 0; //we gain nothing, both of them are our piles
   }
 
   // filter to get moves that steal from most cells
-	// filter to get moves that steal from most cells
-	private Move[] getBestStealMoves(Move[] allMoves, int player_id, int limit) {
-		ArrayList<Move> moves = new ArrayList<Move>();		
-		for (Move move : allMoves) 
-		{
-			move.steal_score = getStealScore(move, player_id);
-			//Populate the list
-			if (moves.size()<limit)
-			{
-				moves.add(move);
-				continue; //move on to the next "move"
-			}
-			//Sort the current Top N best steal moves
-			Collections.sort(moves, new Comparator<Move>() {
-				  public int compare(Move c1, Move c2) {
-				    if (c1.steal_score > c2.steal_score) return -1;
-				    if (c1.steal_score < c2.steal_score) return 1;
-				    return 0;
-				  }});
-			//Evaluate the current move against the worst steal move in the list
-			if (move.steal_score > moves.get(moves.size()-1).steal_score) 
-			{
-				moves.remove(moves.size()-1);
-				moves.add(move);
-			}
-		}
-		return moves.toArray(new Move[moves.size()]);
-	}
-
-/*
-  // filter to get limit number of moves that cutoff the most
-  private Move[] getCutoffMoves(Move[] allMoves, int limit, Point[][] grid, Pair myPair, Pair opponentPair) {
-    PriorityQueue<Move> queue = new PriorityQueue<Move>(limit, new MoveComparator());
-    for (Move move : allMoves) {
-      Point src = move.src, target = move.target;
-      
-      int opp_oldMoveNum = getAllValidMovesFrom(src, opponentPair, grid).length + getAllValidMovesFrom(target, opponentPair, grid).length;
-      int my_oldMoveNum = getAllValidMovesFrom(src, myPair, grid).length + getAllValidMovesFrom(target, myPair, grid).length;
-      
-      grid[src.x][src.y].value = 0;
-      grid[target.x][target.y].value *= 2;
-      
-      int opp_newMoveNum = getAllValidMovesFrom(src, opponentPair, grid).length + getAllValidMovesFrom(target, opponentPair, grid).length;
-      int my_newMoveNum = getAllValidMovesFrom(src, myPair, grid).length + getAllValidMovesFrom(target, myPair, grid).length;
-
-      grid[src.x][src.y].value = grid[target.x][target.y].value / 2;
-      grid[target.x][target.y].value /= 2;
-      
-      move.opp_delta = opp_oldMoveNum - opp_newMoveNum;
-      move.my_delta =  my_oldMoveNum - my_newMoveNum;
-      move.delta = move.opp_delta - move.my_delta;
-      System.out.println("Opponent Delta "+move.opp_delta+" My Delta "+move.my_delta+" Delta "+move.delta);
-      
-      if (queue.size() < limit || queue.peek().delta < move.delta) {
-        if (queue.size() >= limit)
-          queue.poll();
-        queue.add(move);
+  private Move[] getBestStealMoves(Move[] allMoves, int player_id, int limit) {
+    ArrayList<Move> moves = new ArrayList<Move>();		
+    for (Move move : allMoves) 
+    {
+      move.steal_score = getStealScore(move, player_id);
+      //Populate the list
+      if (moves.size()<limit)
+      {
+        moves.add(move);
+        continue; //move on to the next "move"
+      }
+      //Sort the current Top N best steal moves
+      Collections.sort(moves, new Comparator<Move>() {
+          public int compare(Move c1, Move c2) {
+          if (c1.steal_score > c2.steal_score) return -1;
+          if (c1.steal_score < c2.steal_score) return 1;
+          return 0;
+          }});
+      //Evaluate the current move against the worst steal move in the list
+      if (move.steal_score > moves.get(moves.size()-1).steal_score) 
+      {
+        moves.remove(moves.size()-1);
+        moves.add(move);
       }
     }
-    return queue.toArray(new Move[queue.size()]);
+    return moves.toArray(new Move[moves.size()]);
   }
- */ 
-	
+
+
   // filter to get limit number of moves that cutoff the most
-  private Move[] getCutoffMoves(Move[] allMoves, int limit, Point[][] grid, Pair myPair, Pair opponentPair) {
-	ArrayList<Move> moves = new ArrayList<Move>();
-	double best_delta = Double.NEGATIVE_INFINITY;
+  private Move[] getCutoffMoves(Move[] allMoves, Point[][] grid, Pair myPair, Pair opponentPair) {
+    ArrayList<Move> moves = new ArrayList<Move>();
+    double best_delta = Double.NEGATIVE_INFINITY;
     for (Move move : allMoves) {
       Point src = move.src, target = move.target;
-      
+
       int opp_oldMoveNum = getAllValidMovesFrom(src, opponentPair, grid).length + getAllValidMovesFrom(target, opponentPair, grid).length;
       int my_oldMoveNum = getAllValidMovesFrom(src, myPair, grid).length + getAllValidMovesFrom(target, myPair, grid).length;
-      
+
       grid[src.x][src.y].value = 0;
       grid[target.x][target.y].value *= 2;
-      
+
       int opp_newMoveNum = getAllValidMovesFrom(src, opponentPair, grid).length + getAllValidMovesFrom(target, opponentPair, grid).length;
       int my_newMoveNum = getAllValidMovesFrom(src, myPair, grid).length + getAllValidMovesFrom(target, myPair, grid).length;
 
       grid[src.x][src.y].value = grid[target.x][target.y].value / 2;
       grid[target.x][target.y].value /= 2;
-      
+
       move.opp_delta = opp_oldMoveNum - opp_newMoveNum;
       move.my_delta =  my_oldMoveNum - my_newMoveNum;
       move.delta = move.opp_delta - move.my_delta;
-      //System.out.println("Opponent Delta "+move.opp_delta+" My Delta "+move.my_delta+" Delta "+move.delta);
-      
+
       if (move.delta > best_delta) 
       {
-          moves.clear();
-          best_delta = move.delta;
+        moves.clear();
+        best_delta = move.delta;
       }
       if (move.delta == best_delta)
-          moves.add(move);
+        moves.add(move);
     }
     return moves.toArray(new Move[moves.size()]);
   }
@@ -293,14 +247,6 @@ public class Player extends offset.sim.Player {
       }
     }
   }
-  // update 2D board[][] with Point array grid[]
-  private void updateBoard(Point[][] src, Point[][] target) {
-    for (int i = 0; i < SIZE; ++i) {
-      for (int j = 0; j < SIZE; ++j) {
-        target[i][j] = new Point(src[i][j]);
-      }
-    }
-  }
 
   // check if a point is on board
   private boolean onBoard(int x, int y) {
@@ -342,8 +288,6 @@ public class Player extends offset.sim.Player {
     Move tempmove = new Move();
     double tempscore = 0.0;
 
-    double timebefore, timeafter;
-
     //Score for this player on current board
     int thisBoardScore = calculateScore(minimaxID,grid);
 
@@ -358,11 +302,11 @@ public class Player extends offset.sim.Player {
 
     //Get set of moves for this player based on our filters
     Move[] moves = getAllValidMoves(myPair, grid);
-    
-    moves = getCutoffMoves(moves, 5, grid, myPair, herPair);
-    moves = getBestStealMoves(moves, minimaxID, 5);
-    
-    
+
+    moves = getCutoffMoves(moves, grid, myPair, herPair);
+    moves = getBestStealMoves(moves, minimaxID, 5);//Only return a maximum of 5 moves to limit branching factor
+
+
     //If no moves are left, just return this board's score
     if (moves.length == 0){
       return new Move(null,thisBoardScore);
@@ -441,6 +385,7 @@ public class Player extends offset.sim.Player {
     return oldowners;
   }
 
+  //Undo a hypothetical move made over the course of alpha beta
   void undoHypMove(int[] oldowners, Point[][] grid, Move move){
     Point src, target;
     src = grid[move.src.x][move.src.y];
@@ -464,7 +409,7 @@ public class Player extends offset.sim.Player {
       for (int j =0; j<SIZE; j++) {
         if (grid[i][j].owner == id) 
           score = score+grid[i][j].value;
-        
+
         else if (grid[i][j].value > 1)
           score = score - grid[i][j].value;
       }
