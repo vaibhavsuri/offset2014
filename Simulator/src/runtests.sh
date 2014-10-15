@@ -21,7 +21,7 @@ opponent_dir="offset/${opponent}"
 
 #Parameter Sweeps (arbitrarily chosen by Richard)
 psweep="1 2 3" 
-dsweep="8 10 15 19"
+dsweep="5 9 14 20"
 
 Usage() {
     echo "Usage: runtests.sh [options]"
@@ -62,6 +62,7 @@ ForkAndWait() {
     SetPQ ${1} ${i}
     if [ ! ${myp} -eq ${herp} -a ! ${myp} -eq ${herq} ] ; then
       output="result_${i}"
+      echo "${myp}" "${myq}" "${herp}" "${herq}"
       ( java "offset.sim.Offset" "${offset}" "${strategy}${i}" "${opponent}${i}" "${output}" "False" "${myp}" "${myq}" "${herp}" "${herq}" &> /dev/null ) &
     fi
   done 
@@ -159,10 +160,6 @@ while getopts go:d:s:h c; do
     esac
 done
 
-
-
-
-
 if [ ${nosim} -eq 0 ] ; then
 
   # Make clean files where we'll store test results
@@ -194,7 +191,7 @@ if [ ${nosim} -eq 0 ] ; then
 fi
 
 nextnum(){
-  expr match "${1}" '\([0-9]\+\)'
+  expr "${1}" : '\([0-9]\+\)'
 }
 
 # Collect statistics
@@ -212,6 +209,7 @@ if [ ${offset} -eq 0 ] ; then
     pairs=`GetStat "${sim_output}" "Scores"`
     numpairs=( $pairs )
     numpairs=`expr ${#numpairs[@]} / 2 + 1` #Count number of score pairs
+
     for i in `seq 2 1 ${numpairs}` ; do 
       first=`nextnum ${pairs}`
       pairs=`echo ${pairs#${first}}`
@@ -229,7 +227,7 @@ if [ ${offset} -eq 0 ] ; then
   echo "set yrange [0:1000]" >> ${gnuplot_file}
   echo "set xtic nomirror auto       #set xtics automatically" >> ${gnuplot_file}
   echo "set ytic nomirror auto       #set ytics automatically" >> ${gnuplot_file}
-  echo "betas = \" 8 10 15 19 \"" >> ${gnuplot_file}
+  echo "betas = \" 5 9 14 20 \"" >> ${gnuplot_file}
   echo "lookup_beta(i) = word(betas,i)" >> ${gnuplot_file}
   echo "set title \"The Dependence of Player 1's Score on Player 2's Score\"" >> ${gnuplot_file}
   echo "set xlabel \"Player 2 (${opponent}) Score\"" >> ${gnuplot_file}
@@ -237,7 +235,7 @@ if [ ${offset} -eq 0 ] ; then
   echo "set nox2tics" >> ${gnuplot_file}
   echo "set border 3" >> ${gnuplot_file}
   echo "point=1.5" >> ${gnuplot_file}
-  echo "plot  for [i=1:4] '${strategy}_vs_${opponent}_'.lookup_beta(i).'.txt' using 1:2 title \"offset= \".lookup_beta(i) with points ,\\" >> ${gnuplot_file}
+  echo "plot  for [i=1:4] '${strategy}_vs_${opponent}_'.lookup_beta(i).'.txt' using 2:1 title \"offset= \".lookup_beta(i) with points ,\\" >> ${gnuplot_file}
   echo "x w lines lc 'black'" >> ${gnuplot_file}
 
 else
@@ -271,7 +269,7 @@ else
   echo "set xlabel \"Player 2 Score\"" >> ${gnuplot_file}
   echo "set ylabel \"Player 1 Score\"" >> ${gnuplot_file}
   echo "point=1.5" >> ${gnuplot_file}
-  echo "plot '${strategy}_vs_${opponent}_${offset}.txt' u 1:2 w points title 'Results'  " >> ${gnuplot_file}
+  echo "plot '${strategy}_vs_${opponent}_${offset}.txt' u 2:1 w points title 'Results'  " >> ${gnuplot_file}
 fi
 
 exit
