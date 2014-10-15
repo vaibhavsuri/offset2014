@@ -44,6 +44,7 @@ public class Offset
     static int MAX_TICKS = 10000;
     static int size =32;
     static private Point[] grid = new Point[size*size];
+    static PrintWriter writer;
     
     static Player player0;
     static Player player1;
@@ -595,6 +596,10 @@ public class Offset
             int scr0, scr1;
             scr0 = calculatescore(0);
             scr1 = calculatescore(1);
+            writer.printf("[GAME OVER] Score for %s is %d Score for %s is %d", 
+                          group0, scr0, group1, scr1);
+            writer.flush();
+                          
         }
     }
 
@@ -651,6 +656,7 @@ public class Offset
         if (args.length > 8){
           p0 = new Pair(Integer.parseInt(args[5]),Integer.parseInt(args[6]));
           p1 = new Pair(Integer.parseInt(args[7]),Integer.parseInt(args[8]));
+          
         }
         else{
           p0=randomPair(d);
@@ -664,6 +670,9 @@ public class Offset
         
         // create game
        
+        writer = new PrintWriter(output, "UTF-8");
+        writer.printf("Pair 1 is (%d,%d) Pair 2 is (%d,%d)\n", p0.p, p0.q, p1.p, p1.q);
+        writer.flush();
         Offset game = new Offset();
         game.init();
         player0 = loadPlayer(group0, p0, 0);
